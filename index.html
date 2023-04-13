@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Zin in Noord - Evolution - POC by Inove-IT</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ" crossorigin="anonymous">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>
+        <script lang="javascript" src="https://cdn.sheetjs.com/xlsx-0.19.2/package/dist/xlsx.full.min.js"></script>
+        <style type="text/css">
+            @media print
+            {
+                .table thead tr td,.table tbody tr td{
+                    border-width: 1px !important;
+                    border-style: solid !important;
+                    font-size: 10px !important;
+                    padding:0px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <h1 class="text-center">Zin in Noord - Evolution - POC</h1>
+        <div class="container">
+            <div class="d-print-none">
+                <div class="input-group mb-3">
+                  <label class="input-group-text" for="input_file_master">Master file</label>
+                  <input type="file" accept=".xls,.xlsx" class="form-control" id="input_file_master">
+                </div>
+                <div class="alert alert-success d-flex align-items-center d-none" role="alert" id="info-master">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                    <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                  </svg>
+                  <div id="info-master-text">
+                  </div>
+                </div>
+
+                <div class="input-group mb-3">
+                  <label class="input-group-text" for="input_file_stage">Floors file</label>
+                  <input type="file" accept=".xls,.xlsx" class="form-control" id="input_file_stage">
+                </div>
+                <div class="alert alert-success d-flex align-items-center d-none" role="alert" id="info-floors">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                    <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                  </svg>
+                  <div id="info-floors-text">
+                  </div>
+                </div>
+                <br>
+            </div>
+            <div id="result">
+            </div>
+        </div>
+        <script>
+            var floors_master = [];
+            var floors = [];
+            var input_file_master = document.getElementById("input_file_master");
+            var input_file_stage = document.getElementById("input_file_stage");
+            input_file_stage.addEventListener("change", function() {
+                var file = this.files[0];
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    floors = [];
+                    var data = e.target.result;
+                    var workbook = XLSX.read(data, {
+                        type: 'binary'
+                    });
+                    workbook.SheetNames.forEach(function(sheetName) {
+                        var rowObject = XLSX.utils.sheet_to_row_object_array(workbook.Sheets[sheetName]);
+                        var data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+                        data.forEach(function(i) {
+                            floors = floors.concat(Object.values(i).map(function(s) {
+                                var match = String(s).match(/^L\d{3}/);
+                                if (match) {
+                                    return match[0];
+                                }
+                            })).sort();
+                        });
+                    });
+                    floors = [...new Set(floors.filter(e => e))];
+                    document.getElementById("info-floors").classList.remove("d-none");
+                    document.getElementById("info-floors-text").innerHTML = `The following floors are present in the file: ${floors.join(", ")}`;
+                    calculate();
+                };
+                reader.readAsBinaryString(file);
+            });
+
+            input_file_master.addEventListener("change", function() {
+                var file = this.files[0];
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    floors_master = [];
+                    var data = e.target.result;
+                    var workbook = XLSX.read(data, {
+                        type: 'binary'
+                    });
+                    workbook.SheetNames.forEach(function(sheetName) {
+                        var rowObject = XLSX.utils.sheet_to_row_object_array(workbook.Sheets[sheetName]);
+                        var data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+                        data.forEach(function(i) {
+                            floors_master = floors_master.concat(Object.values(i).map(function(s) {
+                                var match = String(s).match(/^L\d{3}/);
+                                if (match) {
+                                    return match[0];
+                                }
+                            })).sort();
+                        });
+                    });
+                    floors_master = [...new Set(floors_master.filter(e => e))];
+                    document.getElementById("info-master").classList.remove("d-none");
+                    document.getElementById("info-master-text").innerHTML = `The following floors are present in the file: ${floors_master.join(", ")}`;
+                    calculate();
+                };
+                reader.readAsBinaryString(file);
+            });
+
+            function calculate() {
+                var devices_master = {};
+                var devices_stage = {};
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var data = e.target.result;
+                    var workbook = XLSX.read(data, {
+                        type: 'binary'
+                    });
+                    floors_master.forEach(function(floor) {
+                        devices_master[floor] = [];
+                        workbook.SheetNames.forEach(function(sheetName) {
+                            var rowObject = XLSX.utils.sheet_to_row_object_array(workbook.Sheets[sheetName]);
+                            var data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+                            data.forEach(function(i) {
+                                devices_master[floor] = devices_master[floor].concat(Object.values(i).filter((s) => String(s).startsWith(floor)));
+                            });
+                        })
+                        devices_master[floor] = [...new Set(devices_master[floor])];
+                    });
+
+                    var reader_stage = new FileReader();
+                    reader_stage.onload = function(e) {
+                        var data = e.target.result;
+                        var workbook = XLSX.read(data, {
+                            type: 'binary'
+                        });
+                        floors.forEach(function(floor) {
+                            devices_stage[floor] = [];
+                            workbook.SheetNames.forEach(function(sheetName) {
+                                var rowObject = XLSX.utils.sheet_to_row_object_array(workbook.Sheets[sheetName]);
+                                var data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+                                data.forEach(function(i) {
+                                    devices_stage[floor] = devices_stage[floor].concat(Object.values(i).filter((s) => String(s).startsWith(floor)));
+                                });
+                            })
+                            devices_stage[floor] = [...new Set(devices_stage[floor])];
+                        });
+                        var result = document.getElementById("result");
+                        result.innerHTML = "";
+                        floors.forEach(function(floor) {
+                            var devices = devices_stage[floor].filter(o => !devices_master[floor].includes(o)).sort();
+                            var tot = devices_stage[floor].length;
+                            var diff = devices.length;
+                            var perc = ((tot - diff) / tot * 100).toFixed(2);
+                            var table_class = "";
+                            if(perc === "NaN") {
+                                perc = 0;
+                            }
+                            if(devices.length === 0) {
+                                table_class = "d-none";
+                            }
+                            result.innerHTML += `<h3>Floor ${floor} (${tot-diff}/${tot})</h3>
+                            <div class="progress d-print-none">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: ${perc}%" aria-valuenow="${perc}" aria-valuemin="0" aria-valuemax="100">${perc}% complete</div>
+                            </div>
+                            <br>
+                                <table class="table table-striped table-bordered table-hover ${table_class}">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">List of missing devices</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${devices.map((i) => "<tr><td>" + i + "</td></tr>").join("")}
+                                </tbody>
+                            </table>
+                            `;
+                        });
+                    }
+                    reader_stage.readAsBinaryString(input_file_stage.files[0]);
+                };
+                if (floors_master.length > 0 && floors.length > 0) {
+                    reader.readAsBinaryString(input_file_master.files[0]);
+                }
+            };
+        </script>
+    </body>
+</html>
